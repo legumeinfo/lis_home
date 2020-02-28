@@ -1,0 +1,10 @@
+name = lis_home
+description = Module to create html for the lis HOME page and button data from an excel sheet.
+core = 7.x
+files[] = lis_home.module
+
+package = LIS
+;dependencies[] = 
+;dependencies[] = 
+;files[] = 
+;configure = 

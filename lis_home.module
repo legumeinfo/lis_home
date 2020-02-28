@@ -1,0 +1,195 @@
+<?php
+    // $Id$
+    
+    // lis_home
+    //    LIS Home page content including html for buttons coming from data in an excel file
+    
+    // Sudhansu Dash
+    // 2020 Feb 28
+    
+    /**
+     * Implements hook_menu().
+     */
+
+    function lis_home_menu() {
+      $items = array();
+      $items['home'] = array( //this creates a URL for the species page
+      //$items['lis_species_resources'] = array( //this creates a URL for the species page
+        'title' => 'LIS:Legume Information System', //page title
+        'description' => 'Creates html for the lis home page including buttons with data from an excel sheet.',
+        'page callback' => lis_home_page_callback, //this fn is called when page accessed. For form, use drupal_get_form
+        //'page arguments' => array('grin_acc_query_form'), //form name here; no need if page callback fn() doesn't need it.
+        'access callback' => TRUE,
+      );
+    /*
+      //$items['lis_species_resources_genomes'] = array( //this creates a URL for genome page
+      $items['genomes'] = array( //this creates a URL for genome page
+    
+        'title' => 'Genome Browsers at LIS and sister sites', //page title
+        'description' => 'Creates html for the lis genomes page listing the genome links per species from the same excel sheet.',
+        //'page callback' => lis_species_resources_genomes_page_callback, //this fn is called when page accessed. For form, use drupal_get_form
+        'page callback' => lis_species_resources_genomes_page_callback,
+        
+        //'page arguments' => array('grin_acc_query_form'), //form name here; no need if page callback fn() doesn't need it.
+        'access callback' => TRUE,
+      );
+    */
+    
+      return $items;
+    }
+    
+    
+    /**
+     * Implements hook_theme().
+     */
+    
+    
+    function lis_home_theme() {
+      return array(
+        'lis_home_page_template' => array(  // this array name to be used in theme() fn.
+        'template' => 'lis_home_page',  //template file lis_home_page.tpl.php
+        //'variables' => array('var1 => NULL', 'var2 => NULL' ),
+        ),  //array page_template
+        /*
+        'lis_species_resources_genomes_page_template' => array(  // this array name to be used in theme() fn.
+        'template' => 'lis_species_resources_genomes_page',  //template file lis_species_resources_page.tpl.php
+        //'variables' => array('var1 => NULL', 'var2 => NULL' ),
+        ),  //array page_template
+        */
+      );  // array return
+    }    
+    
+    /**
+     * Implements page callback.
+     */
+    
+    function lis_home_page_callback() {
+        
+        // load phpexcel drupal module
+        module_load_include('inc', 'phpexcel');
+        // The path to the excel file
+        $module_path = drupal_get_path('module', 'lis_home');
+          //drupal_set_message(t($module_path));
+        $species_resources_path = "files/lis_home";
+        $excel_file = "lis_home_buttons.xlsx";
+        $excel_worksheet = "Sheet1"; //name of specific worksheet in the excel file
+          //not using//$excel_file_path = $module_path."/".$excel_file;
+        $excel_file_path = $species_resources_path."/".$excel_file;
+          //drupal_set_message(t("\$excel_file_path: "."webroot/".$excel_file_path));
+    
+    
+        //Importing a specific worksheet
+        $excel_array = phpexcel_import($excel_file_path,TRUE,TRUE, array('setLoadSheetsOnly' => array($excel_worksheet)));  //now excel file content in an associative array with keys as in 1st row of sheet
+        $excel_array = $excel_array[$excel_worksheet];  //entered into the next evel(worksheet) in the array
+    
+        //Ensure it is an array or create error
+        if (is_array($excel_array)) {
+              //drupal_set_message(t("OK: now in array"));  //File content now in array
+              //extract the keys: (Not using them currently)
+            $sheet_keys = array_keys($excel_array[0]); //array
+              //print_r($sheet_keys);
+    
+            $home_html = "";  // all page html into this var
+            
+            
+            //Spreadsheet code and patterns
+            //rowCode: A-left button, B-mid butt, C-right butt, Sh-Subheading row with label text only
+            //<tr>, <td> tags details vary for each type of rowCode
+            //1st row of sheet is header row and the heading of columns are keys of assoc array.
+            //3 columns: 'rowCode',	'buttonLabel',	'buttonLink'
+            //'buttonLabel' if blank put an empty <td>
+            //A should have a <tr> row-start tag
+            //C should have a </tr> row-end tag
+            //Sh is a row with different style
+                
+            
+            //Entering into the array row by row
+            foreach ($excel_array as $row) {
+                
+                //Skip comment rows with # in first column
+                if (preg_match("/\#/", $row['rowCode'])) {
+                    continue;
+                }
+                    
+                //if A: row-start tag, data <td> tags and  blank <td> tags
+                if (($row['rowCode']) == "A") {
+                    if ($row['buttonLabel']) {  //if not empty, row-start, data td, space td
+                        $home_html .= "<tr style='background: none; align:center;'>";
+                        $home_html .= "<td class='nowrap quicklink circular' onClick=\"document.location.href='".$row['buttonLink']."'\"> <a href=\"".$row['buttonLink']."\"> ".$row['buttonLabel']." </a> </td>";
+                        $home_html .= "<td width=2></td>  <!-- space between buttons  -->";
+                    } else {  //if blank, row-start, empty td, space td
+                        $home_html .= "<tr style='background: none; align:center;'>";
+                        $home_html .= "<td></td>  <!-- space in liu of a button -->";
+                        $home_html .= "<td width=2></td> <!-- space between buttons  -->";
+                    }  //if-else
+                }   //A
+                    
+                // if B: data <td> tags and  blank <td> tags
+                if (($row['rowCode']) == "B") {
+                    if ($row['buttonLabel']) { 
+                        $home_html .= "<td class='nowrap quicklink circular' onClick=\"document.location.href='".$row['buttonLink']."'\"> <a href=\"".$row['buttonLink']."\">".$row['buttonLabel']."</a> </td>";
+                        $home_html .= "<td width=2></td>";
+                    } else {
+                        $home_html .= "<td></td>  <!-- space in liu of a button -->";
+                        $home_html .= "<td width=2></td> <!-- space between buttons  -->";
+                    } //if-else
+                }   //B 
+                    
+                // if C: data <td> tags,  blank <td width="100%"> tags and  row-close tag
+                if (($row['rowCode']) == "C") {
+                    if ($row['buttonLabel']) {
+                        $home_html .= "<td class='nowrap quicklink circular'  onClick=\"document.location.href='".$row['buttonLink']."'\">  <a href=\"".$row['buttonLink']."\">".$row['buttonLabel']."</a>
+            </td>";
+                        $home_html .= "<td width='100%'></td>";
+                        $home_html .= "</tr>";
+                        // Use if Gap between rows needed
+                        //$home_html .= "<tr style='background: none;' height=2><td></td></tr>  <!-- extra row for a gap  -->";
+                    } else {
+                        $home_html .= "<td></td> <!-- Empty for now  -->";
+                        $home_html .= "<td width='100%'></td>  <!-- after last button in row  -->"; 
+                        $home_html .= "<td></td></tr>";  
+                    }
+                }   //C
+                    
+                //if Sh (Subheading): row, data <td> tags
+                if (($row['rowCode']) == "Sh") {   // 'Sh' Subheading
+                    $home_html .= "<tr style='background: none; align:center;'>";
+                    $home_html .= "<td colspan=6>";
+                    $home_html .= "<span style='font-weight:bold;color:#8a8e86'>".$row['buttonLabel']."</span>";
+                    $home_html .= "</td>  </tr>";
+                }  //Sh
+                                
+            }  // foreach row
+        }  // if an array
+        else {
+          drupal_set_message(t("Oops ! An error occured in accesing ".$excel_file." or some errors!"), 'error');
+        }
+    
+        // array name in hook_theme() that specifies page template file.
+        return theme ('lis_home_page_template', array('excel_array' => $excel_array, 'home_html' => $home_html)); 
+      
+        
+            
+          
+    }  //lis_home_page_callback()
+        
+      
+        //echo gettype($excel_array);
+        /*
+        echo "<pre>";
+        print_r($excel_array);
+        echo "</pre>";
+        */
+    
+
+      //===========================================================================
+      
+
+
+//  SCRATCH PAD
+//=============
+
+/*
+ 
+
+*/
